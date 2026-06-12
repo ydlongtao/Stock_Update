@@ -25,6 +25,7 @@ except ImportError:  # pragma: no cover
 ROOT = Path(__file__).resolve().parents[1]
 REPORT_DIR = ROOT / "reports"
 DATA_DIR = ROOT / "data"
+WIDGET_PATH = DATA_DIR / "latest_signal_widget.json"
 BASE_URL = "https://www.alphavantage.co/query"
 EQUITY_SYMBOLS = ["QQQ", "VOO", "SCHD", "META", "MSFT", "IBIT"]
 CRYPTO_SYMBOLS = ["ETH"]
@@ -63,6 +64,7 @@ def load_dotenv(path: Path) -> None:
 
 
 def local_now() -> datetime:
+    load_dotenv(ROOT / ".env.local")
     tz_name = os.getenv("REPORT_TIMEZONE", "America/New_York")
     if ZoneInfo:
         return datetime.now(ZoneInfo(tz_name))
@@ -302,6 +304,51 @@ def signal_class(signal: str) -> str:
         "risk-off pressure": "negative",
         "observe": "observe",
     }.get(signal, "observe")
+
+
+def overall_signal(quotes: list[Quote]) -> str:
+    signals = [report_bias(quote.change_pct) for quote in quotes]
+    if "risk-off pressure" in signals:
+        return "risk-off pressure"
+    if signals.count("positive momentum") >= 3:
+        return "positive momentum"
+    if signals.count("observe") == len(signals):
+        return "observe"
+    return "neutral"
+
+
+def write_widget_payload(
+    now: datetime,
+    quotes: list[Quote],
+    news_rows: list[dict[str, str]],
+    history: list[str],
+    report_path: Path,
+) -> Path:
+    investment_view = make_investment_view(quotes, news_rows, history)
+    signal = overall_signal(quotes)
+    payload = {
+        "generated_at": now.isoformat(),
+        "date": f"{now:%Y-%m-%d}",
+        "title": "US ETF Signal",
+        "overall_signal": signal,
+        "overall_signal_class": signal_class(signal),
+        "summary": investment_view[0] if investment_view else "No investment view generated.",
+        "report_path": str(report_path),
+        "symbols": [
+            {
+                "symbol": quote.symbol,
+                "price": format_price(quote.price),
+                "change_pct": format_pct(quote.change_pct),
+                "signal": report_bias(quote.change_pct),
+                "signal_class": signal_class(report_bias(quote.change_pct)),
+            }
+            for quote in quotes
+        ],
+        "investment_view": investment_view,
+    }
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    WIDGET_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return WIDGET_PATH
 
 
 def render_report_html(
@@ -567,7 +614,9 @@ def main() -> int:
 
     report_path = REPORT_DIR / f"{date_slug}_us_etf_brief.html"
     report_path.write_text(report, encoding="utf-8")
+    widget_path = write_widget_payload(now, quotes, news_rows, history, report_path)
     print(report_path)
+    print(widget_path)
     return 0
 
 

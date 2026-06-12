@@ -47,6 +47,22 @@ The script prints the saved report path, for example:
 reports/2026-06-11_us_etf_brief.html
 ```
 
+## Desktop Widget
+
+To show the latest investment signal in a small macOS desktop widget:
+
+```bash
+./scripts/launch_desktop_widget.sh
+```
+
+The widget reads:
+
+```text
+data/latest_signal_widget.json
+```
+
+Click the widget to open the full HTML report. The launcher is safe to run repeatedly; it will not open duplicate widgets if one is already running.
+
 ## Notes
 
 - Alpha Vantage is used for quotes, ETH daily prices, and news sentiment.

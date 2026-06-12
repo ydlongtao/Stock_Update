@@ -1,5 +1,7 @@
 .env
 .env.local
+.DS_Store
+build/
 data/*.json
 reports/*.md
 reports/*.html
