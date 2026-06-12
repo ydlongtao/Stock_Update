@@ -25,6 +25,7 @@ final class WidgetView: NSView {
     private let titleLabel = NSTextField(labelWithString: "US ETF Signal")
     private let signalLabel = NSTextField(labelWithString: "Loading")
     private let timeLabel = NSTextField(labelWithString: "")
+    private let summaryLabel = NSTextField(labelWithString: "")
     private let rowsStack = NSStackView()
     private var reportPath = ""
 
@@ -37,8 +38,8 @@ final class WidgetView: NSView {
         layer?.borderWidth = 1
 
         stack.orientation = .vertical
-        stack.spacing = 4
-        stack.edgeInsets = NSEdgeInsets(top: 7, left: 8, bottom: 7, right: 8)
+        stack.spacing = 6
+        stack.edgeInsets = NSEdgeInsets(top: 9, left: 10, bottom: 9, right: 10)
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
 
@@ -49,18 +50,22 @@ final class WidgetView: NSView {
             stack.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
 
-        titleLabel.font = NSFont.systemFont(ofSize: 10, weight: .semibold)
-        signalLabel.font = NSFont.systemFont(ofSize: 11, weight: .bold)
+        titleLabel.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
+        signalLabel.font = NSFont.systemFont(ofSize: 14, weight: .bold)
         signalLabel.alignment = .center
         signalLabel.wantsLayer = true
         signalLabel.layer?.cornerRadius = 5
         signalLabel.maximumNumberOfLines = 1
         signalLabel.lineBreakMode = .byTruncatingTail
 
-        timeLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 8, weight: .regular)
+        timeLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .regular)
         timeLabel.textColor = .secondaryLabelColor
+        summaryLabel.font = NSFont.systemFont(ofSize: 9, weight: .regular)
+        summaryLabel.textColor = .labelColor
+        summaryLabel.maximumNumberOfLines = 2
+        summaryLabel.lineBreakMode = .byWordWrapping
         rowsStack.orientation = .vertical
-        rowsStack.spacing = 1
+        rowsStack.spacing = 2
 
         let header = NSStackView(views: [titleLabel, timeLabel])
         header.orientation = .horizontal
@@ -72,6 +77,7 @@ final class WidgetView: NSView {
         stack.addArrangedSubview(header)
         stack.addArrangedSubview(signalLabel)
         stack.addArrangedSubview(rowsStack)
+        stack.addArrangedSubview(summaryLabel)
 
         let click = NSClickGestureRecognizer(target: self, action: #selector(openReport))
         addGestureRecognizer(click)
@@ -88,6 +94,7 @@ final class WidgetView: NSView {
         signalLabel.textColor = color(for: payload.overall_signal_class)
         signalLabel.layer?.backgroundColor = color(for: payload.overall_signal_class).withAlphaComponent(0.14).cgColor
         timeLabel.stringValue = shortTime(payload.generated_at)
+        summaryLabel.stringValue = payload.summary
 
         rowsStack.arrangedSubviews.forEach { view in
             rowsStack.removeArrangedSubview(view)
@@ -105,26 +112,27 @@ final class WidgetView: NSView {
         signalLabel.textColor = color(for: "observe")
         signalLabel.layer?.backgroundColor = color(for: "observe").withAlphaComponent(0.14).cgColor
         timeLabel.stringValue = ""
+        summaryLabel.stringValue = message
     }
 
     private func symbolRow(_ row: WidgetPayload.SymbolRow) -> NSView {
         let symbol = NSTextField(labelWithString: row.symbol)
-        symbol.font = NSFont.monospacedSystemFont(ofSize: 8, weight: .bold)
-        symbol.widthAnchor.constraint(equalToConstant: 34).isActive = true
+        symbol.font = NSFont.monospacedSystemFont(ofSize: 9, weight: .bold)
+        symbol.widthAnchor.constraint(equalToConstant: 40).isActive = true
 
         let price = NSTextField(labelWithString: row.price)
-        price.font = NSFont.monospacedDigitSystemFont(ofSize: 8, weight: .regular)
+        price.font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .regular)
         price.alignment = .right
 
         let change = NSTextField(labelWithString: row.change_pct)
-        change.font = NSFont.monospacedDigitSystemFont(ofSize: 8, weight: .semibold)
+        change.font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .semibold)
         change.textColor = color(for: row.signal_class)
         change.alignment = .right
-        change.widthAnchor.constraint(equalToConstant: 45).isActive = true
+        change.widthAnchor.constraint(equalToConstant: 52).isActive = true
 
         let stack = NSStackView(views: [symbol, price, change])
         stack.orientation = .horizontal
-        stack.spacing = 4
+        stack.spacing = 6
         stack.alignment = .centerY
         stack.distribution = .fill
         return stack
@@ -161,13 +169,13 @@ final class WidgetView: NSView {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var window: NSWindow!
-    private let widget = WidgetView(frame: NSRect(x: 0, y: 0, width: 190, height: 145))
+    private let widget = WidgetView(frame: NSRect(x: 0, y: 0, width: 270, height: 205))
     private var timer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         window = NSWindow(
-            contentRect: NSRect(x: 80, y: 725, width: 190, height: 145),
+            contentRect: NSRect(x: 80, y: 665, width: 270, height: 205),
             styleMask: [.borderless],
             backing: .buffered,
             defer: false
