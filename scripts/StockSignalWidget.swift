@@ -30,6 +30,9 @@ final class WidgetView: NSView {
     private let summaryLabel = NSTextField(labelWithString: "")
     private let gridStack = NSStackView()
     private var reportPath = ""
+    private var dragStartLocation: NSPoint?
+    private var dragStartOrigin: NSPoint?
+    private var didDrag = false
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -94,8 +97,6 @@ final class WidgetView: NSView {
         stack.addArrangedSubview(gridStack)
         stack.addArrangedSubview(summaryLabel)
 
-        let click = NSClickGestureRecognizer(target: self, action: #selector(openReport))
-        addGestureRecognizer(click)
     }
 
     required init?(coder: NSCoder) {
@@ -182,7 +183,37 @@ final class WidgetView: NSView {
         return display.string(from: date)
     }
 
-    @objc private func openReport() {
+    override func mouseDown(with event: NSEvent) {
+        dragStartLocation = NSEvent.mouseLocation
+        dragStartOrigin = window?.frame.origin
+        didDrag = false
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard let window,
+              let startLocation = dragStartLocation,
+              let startOrigin = dragStartOrigin else {
+            return
+        }
+        let current = NSEvent.mouseLocation
+        let deltaX = current.x - startLocation.x
+        let deltaY = current.y - startLocation.y
+        if abs(deltaX) > 2 || abs(deltaY) > 2 {
+            didDrag = true
+        }
+        window.setFrameOrigin(NSPoint(x: startOrigin.x + deltaX, y: startOrigin.y + deltaY))
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        if !didDrag {
+            openReport()
+        }
+        dragStartLocation = nil
+        dragStartOrigin = nil
+        didDrag = false
+    }
+
+    private func openReport() {
         guard !reportPath.isEmpty else { return }
         NSWorkspace.shared.open(URL(fileURLWithPath: reportPath))
     }
@@ -210,9 +241,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.isOpaque = false
         window.backgroundColor = .clear
         window.hasShadow = true
-        window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)))
+        window.level = .normal
         window.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
-        window.isMovableByWindowBackground = true
+        window.isMovableByWindowBackground = false
         window.makeKeyAndOrderFront(nil)
 
         reload()

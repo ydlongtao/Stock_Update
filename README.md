@@ -85,9 +85,9 @@ The widget reads:
 data/latest_signal_widget.json
 ```
 
-Click the widget to open the full HTML report. The widget is placed at desktop level so normal app windows can cover it. The launcher is safe to run repeatedly; it will not open duplicate widgets if one is already running.
+Click the widget to open the full HTML report. Drag anywhere on the widget to move it. The widget uses a normal window level so mouse interactions work reliably. The launcher is safe to run repeatedly; it will not open duplicate widgets if one is already running.
 
-The widget opens near the top-left corner of the main screen. To move it, drag the widget by its empty background area.
+The widget opens near the top-left corner of the main screen by default.
 
 LaunchAgent logs are written under:
 

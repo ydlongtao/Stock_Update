@@ -80,15 +80,15 @@ To remove LaunchAgents:
 
 Current widget layout:
 
-- Fixed 200x200 macOS desktop-level window.
+- Fixed 200x200 macOS normal-level borderless window.
 - Default position is near the top-left corner of the main screen.
-- Desktop-level window so normal app windows appear above it.
+- Normal window level is intentional: desktop-level windows can stop click and drag events from working reliably.
 - Header shows title and refresh time.
 - Signal badge shows the overall daily signal.
 - Watchlist symbols are arranged as a two-column grid to preserve a square layout.
 - The bottom investment summary is constrained to two wrapped lines.
-- Clicking the widget opens the full HTML report.
-- Users can drag the widget by its empty background area because `isMovableByWindowBackground` is enabled.
+- Clicking without dragging opens the full HTML report.
+- Dragging anywhere on the widget moves the window; this is implemented with custom mouse handlers instead of `isMovableByWindowBackground`.
 
 If changing the Swift UI, keep the window square and make sure long summary text cannot widen the window. The app sets min/max/content min/content max sizes to 200x200 for this reason.
 
