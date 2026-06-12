@@ -52,9 +52,16 @@ After the report is generated, run:
 
 The launcher compiles and starts a small macOS desktop signal widget if it is not already running.
 
+To stop the widget:
+
+```bash
+./scripts/stop_desktop_widget.sh
+```
+
 Current widget layout:
 
-- Fixed 200x200 macOS floating window.
+- Fixed 200x200 macOS desktop-level window.
+- Desktop-level window so normal app windows appear above it.
 - Header shows title and refresh time.
 - Signal badge shows the overall daily signal.
 - Watchlist symbols are arranged as a two-column grid to preserve a square layout.
