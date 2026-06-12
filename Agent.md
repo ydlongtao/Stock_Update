@@ -58,6 +58,26 @@ To stop the widget:
 ./scripts/stop_desktop_widget.sh
 ```
 
+To install the macOS LaunchAgent for login persistence and weekday 9:00 AM updates:
+
+```bash
+./scripts/install_launch_agents.sh
+```
+
+Installed LaunchAgent:
+
+- `~/Library/LaunchAgents/com.stockupdate.signal-widget.plist`
+
+The signal-widget LaunchAgent runs the compiled widget app with `RunAtLoad` and `KeepAlive`, so the widget starts at login and restarts if it exits. The widget checks once per minute and, on weekdays after 9:00 AM, runs `scripts/generate_report.py` if today's update has not already completed. It records that state in `data/.last_widget_daily_update`.
+
+Implementation note: launchd may not be allowed to execute scripts directly from `Documents`, so `scripts/install_launch_agents.sh` compiles the widget app into `~/Library/ApplicationSupport/Stock_Update/StockSignalWidget.app` and points the LaunchAgent at that binary. The project root and Python path are passed as widget arguments so the app can perform the daily update itself.
+
+To remove LaunchAgents:
+
+```bash
+./scripts/uninstall_launch_agents.sh
+```
+
 Current widget layout:
 
 - Fixed 200x200 macOS desktop-level window.
@@ -116,5 +136,6 @@ Signal colors:
 - Keep generated files out of Git.
 - Keep the desktop widget launcher idempotent so daily automation does not open duplicate windows.
 - When widget source changes, `scripts/launch_desktop_widget.sh` should rebuild and restart the widget so the visible desktop window is not stale.
+- Keep LaunchAgent plists out of the repo; they are generated into `~/Library/LaunchAgents` by `scripts/install_launch_agents.sh`.
 - If Alpha Vantage changes API behavior, prefer the smallest safe fix in `scripts/generate_report.py`.
 - The investment view is informational research only, not personalized financial advice.

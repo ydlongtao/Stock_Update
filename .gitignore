@@ -1,8 +1,11 @@
 .env
 .env.local
 .DS_Store
+*.swp
 build/
+logs/*.log
 data/*.json
+data/.last_*
 reports/*.md
 reports/*.html
 __pycache__/

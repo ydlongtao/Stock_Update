@@ -3,26 +3,14 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="$ROOT/build"
-BIN="$BUILD_DIR/StockSignalWidget"
 APP="$BUILD_DIR/StockSignalWidget.app"
 APP_BIN="$APP/Contents/MacOS/StockSignalWidget"
 SOURCE="$ROOT/scripts/StockSignalWidget.swift"
 WIDGET_JSON="$ROOT/data/latest_signal_widget.json"
-UID_VALUE="$(id -u)"
-WIDGET_PLIST="$HOME/Library/LaunchAgents/com.stockupdate.signal-widget.plist"
-WIDGET_LABEL="com.stockupdate.signal-widget"
 
-mkdir -p "$BUILD_DIR"
-
-if [[ -f "$WIDGET_PLIST" ]]; then
-  launchctl kickstart -k "gui/$UID_VALUE/$WIDGET_LABEL" >/dev/null 2>&1 || true
-  echo "Desktop widget LaunchAgent started."
-  exit 0
-fi
+mkdir -p "$APP/Contents/MacOS"
 
 if [[ ! -x "$APP_BIN" || "$SOURCE" -nt "$APP_BIN" ]]; then
-  pkill -f "$APP_BIN" >/dev/null 2>&1 || true
-  mkdir -p "$APP/Contents/MacOS"
   swiftc "$SOURCE" -o "$APP_BIN"
   cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -44,14 +32,8 @@ if [[ ! -x "$APP_BIN" || "$SOURCE" -nt "$APP_BIN" ]]; then
 PLIST
 fi
 
-if pgrep -f "$APP_BIN" >/dev/null 2>&1; then
-  echo "Desktop widget is already running."
-  exit 0
-fi
-
 if [[ ! -f "$WIDGET_JSON" ]]; then
   python3 "$ROOT/scripts/generate_report.py"
 fi
 
-open -n "$APP" --args "$WIDGET_JSON" "$ROOT" "$(command -v python3)"
-echo "Desktop widget app opened."
+exec "$APP_BIN" "$WIDGET_JSON" "$ROOT" "$(command -v python3)"

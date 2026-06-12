@@ -192,6 +192,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var window: NSWindow!
     private let widget = WidgetView(frame: NSRect(x: 0, y: 0, width: 200, height: 200))
     private var timer: Timer?
+    private var isUpdating = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -221,9 +222,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func reload() {
-        let path = CommandLine.arguments.dropFirst().first
-            ?? ProcessInfo.processInfo.environment["STOCK_SIGNAL_WIDGET_JSON"]
-            ?? defaultWidgetPath()
+        maybeRunDailyUpdate()
+        let path = widgetJSONPath()
         let url = URL(fileURLWithPath: path)
         do {
             let data = try Data(contentsOf: url)
@@ -232,6 +232,95 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } catch {
             widget.renderError("Waiting for data at \(path)")
         }
+    }
+
+    private func widgetJSONPath() -> String {
+        return CommandLine.arguments.dropFirst().first
+            ?? ProcessInfo.processInfo.environment["STOCK_SIGNAL_WIDGET_JSON"]
+            ?? defaultWidgetPath()
+    }
+
+    private func projectRootPath() -> String {
+        let args = Array(CommandLine.arguments.dropFirst())
+        if args.count >= 2 {
+            return args[1]
+        }
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        return "\(home)/Documents/Stock_Update"
+    }
+
+    private func pythonPath() -> String {
+        let args = Array(CommandLine.arguments.dropFirst())
+        if args.count >= 3 {
+            return args[2]
+        }
+        return "/usr/bin/python3"
+    }
+
+    private func maybeRunDailyUpdate() {
+        if isUpdating {
+            return
+        }
+
+        let now = Date()
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: now)
+        let hour = calendar.component(.hour, from: now)
+        guard (2...6).contains(weekday), hour >= 9 else {
+            return
+        }
+
+        let marker = URL(fileURLWithPath: projectRootPath())
+            .appendingPathComponent("data/.last_widget_daily_update")
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let today = dateFormatter.string(from: now)
+        if let markerText = try? String(contentsOf: marker, encoding: .utf8),
+           markerText.trimmingCharacters(in: .whitespacesAndNewlines) == today {
+            return
+        }
+        if payloadDate() == today {
+            writeDailyMarker(today, to: marker)
+            return
+        }
+
+        isUpdating = true
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let self else { return }
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: self.pythonPath())
+            process.arguments = [
+                "\(self.projectRootPath())/scripts/generate_report.py"
+            ]
+            process.currentDirectoryURL = URL(fileURLWithPath: self.projectRootPath())
+            do {
+                try process.run()
+                process.waitUntilExit()
+                if process.terminationStatus == 0 {
+                    self.writeDailyMarker(today, to: marker)
+                }
+            } catch {
+                // Keep the widget alive; the next timer tick can retry.
+            }
+            DispatchQueue.main.async {
+                self.isUpdating = false
+                self.reload()
+            }
+        }
+    }
+
+    private func payloadDate() -> String? {
+        let url = URL(fileURLWithPath: widgetJSONPath())
+        guard let data = try? Data(contentsOf: url),
+              let payload = try? JSONDecoder().decode(WidgetPayload.self, from: data) else {
+            return nil
+        }
+        return payload.date
+    }
+
+    private func writeDailyMarker(_ value: String, to marker: URL) {
+        let data = "\(value)\n".data(using: .utf8)
+        FileManager.default.createFile(atPath: marker.path, contents: data)
     }
 
     private func defaultWidgetPath() -> String {
