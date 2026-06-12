@@ -21,16 +21,19 @@ struct WidgetPayload: Decodable {
 }
 
 final class WidgetView: NSView {
+    private static let side: CGFloat = 200
+
     private let stack = NSStackView()
     private let titleLabel = NSTextField(labelWithString: "US ETF Signal")
     private let signalLabel = NSTextField(labelWithString: "Loading")
     private let timeLabel = NSTextField(labelWithString: "")
     private let summaryLabel = NSTextField(labelWithString: "")
-    private let rowsStack = NSStackView()
+    private let gridStack = NSStackView()
     private var reportPath = ""
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
+        translatesAutoresizingMaskIntoConstraints = false
         wantsLayer = true
         layer?.cornerRadius = 10
         layer?.backgroundColor = NSColor.windowBackgroundColor.withAlphaComponent(0.92).cgColor
@@ -38,20 +41,22 @@ final class WidgetView: NSView {
         layer?.borderWidth = 1
 
         stack.orientation = .vertical
-        stack.spacing = 4
+        stack.spacing = 5
         stack.edgeInsets = NSEdgeInsets(top: 6, left: 6, bottom: 6, right: 6)
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
 
         NSLayoutConstraint.activate([
+            widthAnchor.constraint(equalToConstant: Self.side),
+            heightAnchor.constraint(equalToConstant: Self.side),
             stack.leadingAnchor.constraint(equalTo: leadingAnchor),
             stack.trailingAnchor.constraint(equalTo: trailingAnchor),
             stack.topAnchor.constraint(equalTo: topAnchor),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
 
-        titleLabel.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
-        signalLabel.font = NSFont.systemFont(ofSize: 13, weight: .bold)
+        titleLabel.font = NSFont.systemFont(ofSize: 11.5, weight: .semibold)
+        signalLabel.font = NSFont.systemFont(ofSize: 13.5, weight: .bold)
         signalLabel.alignment = .center
         signalLabel.wantsLayer = true
         signalLabel.layer?.cornerRadius = 5
@@ -67,9 +72,15 @@ final class WidgetView: NSView {
         summaryLabel.cell?.wraps = true
         summaryLabel.cell?.isScrollable = false
         summaryLabel.cell?.usesSingleLineMode = false
+        summaryLabel.preferredMaxLayoutWidth = 188
+        summaryLabel.translatesAutoresizingMaskIntoConstraints = false
         summaryLabel.heightAnchor.constraint(equalToConstant: 34).isActive = true
-        rowsStack.orientation = .vertical
-        rowsStack.spacing = 1
+
+        gridStack.orientation = .horizontal
+        gridStack.spacing = 4
+        gridStack.distribution = .fillEqually
+        gridStack.alignment = .top
+        gridStack.translatesAutoresizingMaskIntoConstraints = false
 
         let header = NSStackView(views: [titleLabel, timeLabel])
         header.orientation = .horizontal
@@ -80,7 +91,7 @@ final class WidgetView: NSView {
 
         stack.addArrangedSubview(header)
         stack.addArrangedSubview(signalLabel)
-        stack.addArrangedSubview(rowsStack)
+        stack.addArrangedSubview(gridStack)
         stack.addArrangedSubview(summaryLabel)
 
         let click = NSClickGestureRecognizer(target: self, action: #selector(openReport))
@@ -100,13 +111,22 @@ final class WidgetView: NSView {
         timeLabel.stringValue = shortTime(payload.generated_at)
         summaryLabel.stringValue = payload.summary
 
-        rowsStack.arrangedSubviews.forEach { view in
-            rowsStack.removeArrangedSubview(view)
+        gridStack.arrangedSubviews.forEach { view in
+            gridStack.removeArrangedSubview(view)
             view.removeFromSuperview()
         }
 
-        for row in payload.symbols {
-            rowsStack.addArrangedSubview(symbolRow(row))
+        let columns = [NSStackView(), NSStackView()]
+        for column in columns {
+            column.orientation = .vertical
+            column.spacing = 2
+            column.distribution = .fillEqually
+            column.alignment = .leading
+            gridStack.addArrangedSubview(column)
+        }
+
+        for (index, row) in payload.symbols.enumerated() {
+            columns[index % 2].addArrangedSubview(symbolTile(row))
         }
     }
 
@@ -119,26 +139,23 @@ final class WidgetView: NSView {
         summaryLabel.stringValue = message
     }
 
-    private func symbolRow(_ row: WidgetPayload.SymbolRow) -> NSView {
+    private func symbolTile(_ row: WidgetPayload.SymbolRow) -> NSView {
         let symbol = NSTextField(labelWithString: row.symbol)
-        symbol.font = NSFont.monospacedSystemFont(ofSize: 9.5, weight: .bold)
-        symbol.widthAnchor.constraint(equalToConstant: 38).isActive = true
+        symbol.font = NSFont.monospacedSystemFont(ofSize: 9, weight: .bold)
+        symbol.textColor = color(for: row.signal_class)
 
-        let price = NSTextField(labelWithString: row.price)
-        price.font = NSFont.monospacedDigitSystemFont(ofSize: 9.5, weight: .regular)
-        price.alignment = .right
+        let value = NSTextField(labelWithString: "\(row.price) \(row.change_pct)")
+        value.font = NSFont.monospacedDigitSystemFont(ofSize: 8, weight: .regular)
+        value.textColor = .labelColor
+        value.lineBreakMode = .byTruncatingTail
+        value.maximumNumberOfLines = 1
 
-        let change = NSTextField(labelWithString: row.change_pct)
-        change.font = NSFont.monospacedDigitSystemFont(ofSize: 9.5, weight: .semibold)
-        change.textColor = color(for: row.signal_class)
-        change.alignment = .right
-        change.widthAnchor.constraint(equalToConstant: 49).isActive = true
-
-        let stack = NSStackView(views: [symbol, price, change])
-        stack.orientation = .horizontal
-        stack.spacing = 4
-        stack.alignment = .centerY
+        let stack = NSStackView(views: [symbol, value])
+        stack.orientation = .vertical
+        stack.spacing = 0
+        stack.alignment = .leading
         stack.distribution = .fill
+        stack.widthAnchor.constraint(equalToConstant: 90).isActive = true
         return stack
     }
 
@@ -185,6 +202,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             defer: false
         )
         window.contentView = widget
+        window.minSize = NSSize(width: 200, height: 200)
+        window.maxSize = NSSize(width: 200, height: 200)
+        window.contentMinSize = NSSize(width: 200, height: 200)
+        window.contentMaxSize = NSSize(width: 200, height: 200)
         window.isOpaque = false
         window.backgroundColor = .clear
         window.hasShadow = true

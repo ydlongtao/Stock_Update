@@ -12,6 +12,7 @@ WIDGET_JSON="$ROOT/data/latest_signal_widget.json"
 mkdir -p "$BUILD_DIR"
 
 if [[ ! -x "$APP_BIN" || "$SOURCE" -nt "$APP_BIN" ]]; then
+  pkill -f "$APP_BIN" >/dev/null 2>&1 || true
   mkdir -p "$APP/Contents/MacOS"
   swiftc "$SOURCE" -o "$APP_BIN"
   cat > "$APP/Contents/Info.plist" <<PLIST
