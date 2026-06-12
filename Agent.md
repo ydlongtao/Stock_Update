@@ -52,6 +52,17 @@ After the report is generated, run:
 
 The launcher compiles and starts a small macOS desktop signal widget if it is not already running.
 
+Current widget layout:
+
+- Fixed 200x200 macOS floating window.
+- Header shows title and refresh time.
+- Signal badge shows the overall daily signal.
+- Watchlist symbols are arranged as a two-column grid to preserve a square layout.
+- The bottom investment summary is constrained to two wrapped lines.
+- Clicking the widget opens the full HTML report.
+
+If changing the Swift UI, keep the window square and make sure long summary text cannot widen the window. The app sets min/max/content min/content max sizes to 200x200 for this reason.
+
 ## API Key Handling
 
 Never commit API keys.
@@ -97,5 +108,6 @@ Signal colors:
 - Preserve compatibility with `.env.local` loading from the project root.
 - Keep generated files out of Git.
 - Keep the desktop widget launcher idempotent so daily automation does not open duplicate windows.
+- When widget source changes, `scripts/launch_desktop_widget.sh` should rebuild and restart the widget so the visible desktop window is not stale.
 - If Alpha Vantage changes API behavior, prefer the smallest safe fix in `scripts/generate_report.py`.
 - The investment view is informational research only, not personalized financial advice.
