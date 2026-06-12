@@ -197,7 +197,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         window = NSWindow(
-            contentRect: NSRect(x: 80, y: 670, width: 200, height: 200),
+            contentRect: Self.topLeftContentRect(),
             styleMask: [.borderless],
             backing: .buffered,
             defer: false
@@ -219,6 +219,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             self?.reload()
         }
+    }
+
+    private static func topLeftContentRect() -> NSRect {
+        let size = NSSize(width: 200, height: 200)
+        let margin: CGFloat = 18
+        let frame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+        return NSRect(
+            x: frame.minX + margin,
+            y: frame.maxY - size.height - margin,
+            width: size.width,
+            height: size.height
+        )
     }
 
     private func reload() {
