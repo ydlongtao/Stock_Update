@@ -38,8 +38,8 @@ final class WidgetView: NSView {
         layer?.borderWidth = 1
 
         stack.orientation = .vertical
-        stack.spacing = 6
-        stack.edgeInsets = NSEdgeInsets(top: 9, left: 10, bottom: 9, right: 10)
+        stack.spacing = 4
+        stack.edgeInsets = NSEdgeInsets(top: 6, left: 6, bottom: 6, right: 6)
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
 
@@ -50,8 +50,8 @@ final class WidgetView: NSView {
             stack.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
 
-        titleLabel.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
-        signalLabel.font = NSFont.systemFont(ofSize: 14, weight: .bold)
+        titleLabel.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
+        signalLabel.font = NSFont.systemFont(ofSize: 13, weight: .bold)
         signalLabel.alignment = .center
         signalLabel.wantsLayer = true
         signalLabel.layer?.cornerRadius = 5
@@ -60,12 +60,16 @@ final class WidgetView: NSView {
 
         timeLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .regular)
         timeLabel.textColor = .secondaryLabelColor
-        summaryLabel.font = NSFont.systemFont(ofSize: 9, weight: .regular)
+        summaryLabel.font = NSFont.systemFont(ofSize: 9.5, weight: .regular)
         summaryLabel.textColor = .labelColor
         summaryLabel.maximumNumberOfLines = 2
         summaryLabel.lineBreakMode = .byWordWrapping
+        summaryLabel.cell?.wraps = true
+        summaryLabel.cell?.isScrollable = false
+        summaryLabel.cell?.usesSingleLineMode = false
+        summaryLabel.heightAnchor.constraint(equalToConstant: 34).isActive = true
         rowsStack.orientation = .vertical
-        rowsStack.spacing = 2
+        rowsStack.spacing = 1
 
         let header = NSStackView(views: [titleLabel, timeLabel])
         header.orientation = .horizontal
@@ -117,22 +121,22 @@ final class WidgetView: NSView {
 
     private func symbolRow(_ row: WidgetPayload.SymbolRow) -> NSView {
         let symbol = NSTextField(labelWithString: row.symbol)
-        symbol.font = NSFont.monospacedSystemFont(ofSize: 9, weight: .bold)
-        symbol.widthAnchor.constraint(equalToConstant: 40).isActive = true
+        symbol.font = NSFont.monospacedSystemFont(ofSize: 9.5, weight: .bold)
+        symbol.widthAnchor.constraint(equalToConstant: 38).isActive = true
 
         let price = NSTextField(labelWithString: row.price)
-        price.font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .regular)
+        price.font = NSFont.monospacedDigitSystemFont(ofSize: 9.5, weight: .regular)
         price.alignment = .right
 
         let change = NSTextField(labelWithString: row.change_pct)
-        change.font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .semibold)
+        change.font = NSFont.monospacedDigitSystemFont(ofSize: 9.5, weight: .semibold)
         change.textColor = color(for: row.signal_class)
         change.alignment = .right
-        change.widthAnchor.constraint(equalToConstant: 52).isActive = true
+        change.widthAnchor.constraint(equalToConstant: 49).isActive = true
 
         let stack = NSStackView(views: [symbol, price, change])
         stack.orientation = .horizontal
-        stack.spacing = 6
+        stack.spacing = 4
         stack.alignment = .centerY
         stack.distribution = .fill
         return stack
@@ -169,13 +173,13 @@ final class WidgetView: NSView {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var window: NSWindow!
-    private let widget = WidgetView(frame: NSRect(x: 0, y: 0, width: 270, height: 205))
+    private let widget = WidgetView(frame: NSRect(x: 0, y: 0, width: 200, height: 200))
     private var timer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         window = NSWindow(
-            contentRect: NSRect(x: 80, y: 665, width: 270, height: 205),
+            contentRect: NSRect(x: 80, y: 670, width: 200, height: 200),
             styleMask: [.borderless],
             backing: .buffered,
             defer: false
